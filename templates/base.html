@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="theme-color" content="#0e0e12">
+  <title>PegTrack — {% block title %}{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+<div class="app-shell">
+
+  <header class="top-bar">
+    <div class="top-bar-inner">
+      <div class="logo">
+        <span class="logo-icon">◈</span>
+        <span class="logo-text">PegTrack</span>
+      </div>
+      {% if session.get('user_id') %}
+      <div class="user-area">
+        <a href="{{ url_for('profile') }}" class="user-chip">
+          <div class="user-avatar">{{ session.get('user_name','?')[0].upper() }}</div>
+          <span class="user-name-short">{{ session.get('user_name','').split()[0] }}</span>
+        </a>
+        <a href="{{ url_for('logout') }}" class="logout-btn" title="Logout">⏻</a>
+      </div>
+      {% endif %}
+    </div>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="flash-wrap">
+    {% for cat, msg in messages %}
+    <div class="flash flash-{{ cat }}">{{ msg }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endwith %}
+
+  {% if alert is defined and alert %}
+  <div class="alert-banner alert-{{ alert.level }}">
+    <div class="alert-inner">
+      <span class="alert-icon">
+        {% if alert.level == 'danger' %}⚠{% elif alert.level == 'warning' %}◉{% else %}ℹ{% endif %}
+      </span>
+      <div class="alert-body">
+        <span class="alert-msg">{{ alert.msg }}</span>
+        <div class="alert-bar-track">
+          <div class="alert-bar-fill" style="width:{{ alert.pct }}%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <main class="main-content">
+    {% block content %}{% endblock %}
+  </main>
+
+  {% if session.get('user_id') %}
+  <nav class="bottom-nav">
+    <a href="{{ url_for('dashboard') }}" class="nav-item {% if request.endpoint == 'dashboard' %}active{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+        <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+      </svg>
+      <span>Overview</span>
+    </a>
+    <a href="{{ url_for('log_drink') }}" class="nav-item {% if request.endpoint == 'log_drink' %}active{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+      </svg>
+      <span>Log</span>
+    </a>
+    <a href="{{ url_for('history') }}" class="nav-item {% if request.endpoint == 'history' %}active{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/>
+      </svg>
+      <span>History</span>
+    </a>
+    <a href="{{ url_for('trends') }}" class="nav-item {% if request.endpoint == 'trends' %}active{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+      </svg>
+      <span>Trends</span>
+    </a>
+    <a href="{{ url_for('calculator') }}" class="nav-item {% if request.endpoint == 'calculator' %}active{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M9 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2h-4"/>
+        <rect x="9" y="1" width="6" height="4" rx="1"/>
+        <line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="15" y2="16"/>
+        <line x1="9" y1="8" x2="11" y2="8"/>
+      </svg>
+      <span>Calculator</span>
+    </a>
+  </nav>
+  {% endif %}
+
+</div>
+
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Profile{% endblock %}
+{% block content %}
+<div class="page-log">
+  <div class="page-header">
+    <p class="page-sub">Your account</p>
+    <h1 class="page-title">Profile</h1>
+  </div>
+
+  <div class="card form-card">
+    <form method="POST" action="{{ url_for('profile') }}">
+      <div class="field-group">
+        <label class="field-label">Full name</label>
+        <input class="field-input" type="text" name="name" value="{{ user.name }}" required>
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label">Email</label>
+          <input class="field-input" type="email" name="email" value="{{ user.email or '' }}">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Phone</label>
+          <input class="field-input" type="tel" name="phone" value="{{ user.phone or '' }}">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label">Gender</label>
+          <select class="field-input" name="gender">
+            <option value="male" {% if user.gender=='male' %}selected{% endif %}>Male</option>
+            <option value="female" {% if user.gender=='female' %}selected{% endif %}>Female</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Weight (kg)</label>
+          <input class="field-input" type="number" name="weight_kg" value="{{ user.weight_kg }}" min="30" max="250">
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Monthly unit limit</label>
+        <input class="field-input" type="number" name="monthly_limit" value="{{ user.monthly_limit }}" min="1" max="500">
+        <span style="font-size:11px;color:var(--text-dim);margin-top:3px">Alerts trigger at 60%, 80%, 100% of this limit</span>
+      </div>
+      <button type="submit" class="submit-btn">Save changes</button>
+    </form>
+  </div>
+
+  <a href="{{ url_for('logout') }}" class="cta-btn" style="border-color:var(--coral);color:var(--coral);background:rgba(224,84,112,0.08)">
+    <span>Sign out</span><span>→</span>
+  </a>
+</div>
+{% endblock %}

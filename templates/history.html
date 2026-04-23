@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}History{% endblock %}
+
+{% block content %}
+<div class="page-history">
+
+  <div class="page-header">
+    <p class="page-sub">{{ period_label }}</p>
+    <h1 class="page-title">History</h1>
+  </div>
+
+  <!-- Period switcher -->
+  <div class="period-bar">
+    <div class="period-tabs">
+      <a href="{{ url_for('history', mode='month', month=sel_month) }}"
+         class="period-tab {% if mode=='month' %}active{% endif %}">Month</a>
+      <a href="{{ url_for('history', mode='year', year=sel_year) }}"
+         class="period-tab {% if mode=='year' %}active{% endif %}">Year</a>
+      <a href="{{ url_for('history', mode='all') }}"
+         class="period-tab {% if mode=='all' %}active{% endif %}">All</a>
+    </div>
+
+    {% if mode != 'all' %}
+    {% if mode == 'month' %}
+    <form method="GET" action="{{ url_for('history') }}" class="period-pick-form">
+      <input type="hidden" name="mode" value="month">
+      <select name="month" class="period-select" onchange="this.form.submit()">
+        {% for m in available_months %}
+        <option value="{{ m }}" {% if sel_month==m %}selected{% endif %}>{{ m }}</option>
+        {% endfor %}
+      </select>
+    </form>
+    {% else %}
+    <form method="GET" action="{{ url_for('history') }}" class="period-pick-form">
+      <input type="hidden" name="mode" value="year">
+      <select name="year" class="period-select" onchange="this.form.submit()">
+        {% for y in available_years %}
+        <option value="{{ y }}" {% if sel_year==y %}selected{% endif %}>{{ y }}</option>
+        {% endfor %}
+      </select>
+    </form>
+    {% endif %}
+    {% endif %}
+  </div>
+
+  <!-- Period totals -->
+  {% if grouped %}
+  <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:1rem">
+    <div class="stat-card stat-amber" style="padding:10px 12px">
+      <div class="stat-body">
+        <div class="stat-val" style="font-size:18px">{{ total_stats.units }}</div>
+        <div class="stat-label">units</div>
+      </div>
+    </div>
+    <div class="stat-card stat-blue" style="padding:10px 12px">
+      <div class="stat-body">
+        <div class="stat-val" style="font-size:18px">{{ "{:,}".format(total_stats.ml) }}</div>
+        <div class="stat-label">ml</div>
+      </div>
+    </div>
+    <div class="stat-card stat-teal" style="padding:10px 12px">
+      <div class="stat-body">
+        <div class="stat-val" style="font-size:18px">₹{{ "{:,}".format(total_stats.cost) }}</div>
+        <div class="stat-label">spent</div>
+      </div>
+    </div>
+  </div>
+
+    {% for date_str, entries in grouped.items() %}
+    <div class="history-day">
+      <div class="day-header">
+        <span class="day-label">{{ date_str }}</span>
+        <span class="day-summary">
+          {{ "%.1f"|format(entries|sum(attribute='units')) }} u ·
+          {{ entries|sum(attribute='ml')|int }} ml ·
+          ₹{{ entries|sum(attribute='cost')|int }}
+        </span>
+      </div>
+      <div class="card">
+        {% for r in entries %}
+        <div class="log-row">
+          <div class="log-left">
+            <div class="log-avatar type-bg-{{ r.type|lower }}">
+              {{ {'Beer':'🍺','Wine':'🍷','Spirits':'🥃','Cocktail':'🍸','Cider':'🍎'}.get(r.type,'🥤') }}
+            </div>
+            <div class="log-info">
+              <div class="log-name">{{ r.name }}</div>
+              <div class="log-meta">
+                <span class="type-badge badge-{{ r.type|lower }}">{{ r.type }}</span>
+                {{ r.ml|int }}ml · {{ r.abv }}%
+              </div>
+            </div>
+          </div>
+          <div class="log-right">
+            <div class="log-units">{{ "%.2f"|format(r.units) }} u</div>
+            <div class="log-cost">₹{{ r.cost|int }}</div>
+          </div>
+          <form method="POST" action="{{ url_for('delete_drink', drink_id=r.id) }}" style="margin:0">
+            <input type="hidden" name="next" value="history">
+            <button type="submit" class="del-btn">✕</button>
+          </form>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">📋</div>
+    <p>No drinks for {{ period_label }}.</p>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

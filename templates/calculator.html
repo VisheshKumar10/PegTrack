@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+{% block title %}Drunk Calculator{% endblock %}
+
+{% block content %}
+<div class="page-log">
+
+  <div class="page-header">
+    <p class="page-sub">Know your limit</p>
+    <h1 class="page-title">Drunk calculator</h1>
+  </div>
+
+  <div class="calc-info-box">
+    Uses the <strong>Widmark formula</strong> — the standard BAC calculation used by researchers and law enforcement worldwide.
+    Results are estimates. Food, tolerance, and hydration affect actual impairment.
+  </div>
+
+  <!-- User profile inputs -->
+  <div class="card form-card">
+    <div class="calc-section-label">Your body</div>
+    <div class="field-row">
+      <div class="field-group">
+        <label class="field-label">Gender</label>
+        <select class="field-input" id="c-gender">
+          <option value="male" {% if user.gender=='male' %}selected{% endif %}>Male</option>
+          <option value="female" {% if user.gender=='female' %}selected{% endif %}>Female</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Weight (kg)</label>
+        <input class="field-input" type="number" id="c-weight" value="{{ user.weight_kg }}" min="30" max="250">
+      </div>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Hours since first drink</label>
+      <input class="field-input" type="number" id="c-hours" value="1" min="0" max="24" step="0.5">
+    </div>
+
+    <div class="calc-section-label" style="margin-top:1rem">Choose drink</div>
+    <div class="type-picker" id="calc-type-picker">
+      {% for t, icon in [('Beer','🍺'),('Wine','🍷'),('Spirits','🥃'),('Cocktail','🍸'),('Cider','🍎')] %}
+      <label class="type-chip">
+        <input type="radio" name="calc-type" value="{{ t }}" {% if t=='Beer' %}checked{% endif %}>
+        <span class="chip-inner">
+          <span class="chip-icon">{{ icon }}</span>
+          <span class="chip-label">{{ t }}</span>
+        </span>
+      </label>
+      {% endfor %}
+    </div>
+
+    <div class="field-row">
+      <div class="field-group">
+        <label class="field-label">Serving size (ml)</label>
+        <input class="field-input" type="number" id="c-ml" value="330" min="10" max="2000">
+      </div>
+      <div class="field-group">
+        <label class="field-label">ABV (%)</label>
+        <input class="field-input" type="number" id="c-abv" value="5" step="0.1" min="0.1">
+      </div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="calc-result-card" id="result-card">
+
+    <div class="bac-display">
+      <div class="bac-label">Your BAC after <span id="r-count">1</span> drink(s)</div>
+      <div class="bac-value" id="r-bac">0.00%</div>
+      <div class="bac-status" id="r-status">Sober</div>
+    </div>
+
+    <div class="bac-bar-wrap">
+      <div class="bac-bar-track">
+        <div class="bac-zone" style="left:0%;width:26.7%;background:rgba(30,191,138,0.3)"></div>
+        <div class="bac-zone" style="left:26.7%;width:26.6%;background:rgba(232,160,32,0.3)"></div>
+        <div class="bac-zone" style="left:53.3%;width:46.7%;background:rgba(224,84,112,0.2)"></div>
+        <div class="bac-needle" id="bac-needle" style="left:0%"></div>
+      </div>
+      <div class="bac-zone-labels">
+        <span>Sober</span><span>Tipsy 0.04%</span><span>Drunk 0.08%</span><span>Heavy 0.15%</span>
+      </div>
+    </div>
+
+    <div class="drink-counts">
+      <div class="drink-count-row">
+        <span class="dc-label">Tipsy at</span>
+        <span class="dc-val" id="r-tipsy">— drinks</span>
+        <span class="dc-sub" id="r-tipsy-pegs"></span>
+      </div>
+      <div class="drink-count-row">
+        <span class="dc-label">Drunk at (0.08%)</span>
+        <span class="dc-val" id="r-drunk">— drinks</span>
+        <span class="dc-sub" id="r-drunk-pegs"></span>
+      </div>
+      <div class="drink-count-row">
+        <span class="dc-label">Heavily drunk</span>
+        <span class="dc-val" id="r-heavy">— drinks</span>
+        <span class="dc-sub" id="r-heavy-pegs"></span>
+      </div>
+    </div>
+
+    <!-- Slider -->
+    <div class="slider-section">
+      <label class="field-label">Simulate: how many drinks?</label>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:6px">
+        <input type="range" id="c-count" min="1" max="20" value="1" step="1" style="flex:1">
+        <span class="preview-val" id="r-count-out" style="min-width:24px;text-align:center">1</span>
+      </div>
+    </div>
+
+    <div class="sober-estimate">
+      <span class="sober-icon">⏱</span>
+      <span id="r-sober-time">Estimated sober in — hrs</span>
+    </div>
+
+  </div>
+
+  <!-- Drink guide -->
+  <div class="section-label">Standard serving guide</div>
+  <div class="card" style="padding:0.75rem 1rem">
+    <div class="guide-row"><span class="guide-icon">🍺</span><div><div class="guide-name">1 can of beer</div><div class="guide-meta">330ml · 5% ABV = 1.65 units</div></div></div>
+    <div class="guide-row"><span class="guide-icon">🍷</span><div><div class="guide-name">1 glass of wine</div><div class="guide-meta">150ml · 12% ABV = 1.8 units</div></div></div>
+    <div class="guide-row"><span class="guide-icon">🥃</span><div><div class="guide-name">1 peg of spirits</div><div class="guide-meta">30ml · 40% ABV = 1.2 units</div></div></div>
+    <div class="guide-row" style="border:none"><span class="guide-icon">🍸</span><div><div class="guide-name">1 cocktail</div><div class="guide-meta">200ml · 12% ABV = 2.4 units</div></div></div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ── Widmark BAC formula ────────────────────────────────────────────────────────
+// BAC = (A × 5.14) / (W × r) − 0.015 × H
+// A = total oz of pure alcohol, W = body weight lbs, r = 0.73 male / 0.66 female
+// We use metric: BAC = (grams_alcohol) / (weight_g × r) − 0.015 × hours
+
+const R = { male: 0.73, female: 0.66 };
+const ALCOHOL_DENSITY = 0.789; // g/ml
+
+const PRESET = {
+  Beer:    { ml: 330, abv: 5  },
+  Wine:    { ml: 150, abv: 12 },
+  Spirits: { ml: 30,  abv: 40 },
+  Cocktail:{ ml: 200, abv: 12 },
+  Cider:   { ml: 330, abv: 4.5}
+};
+
+function grams(ml, abv) {
+  return ml * (abv / 100) * ALCOHOL_DENSITY;
+}
+
+function calcBAC(totalGrams, weightKg, gender, hours) {
+  const weightG = weightKg * 1000;
+  const r = R[gender] || 0.73;
+  const raw = (totalGrams / (weightG * r)) * 100 - 0.015 * hours;
+  return Math.max(0, raw);
+}
+
+function drinksToReach(target, gramsEach, weightKg, gender, hours) {
+  // solve: (n * gramsEach) / (weightG * r) * 100 - 0.015 * hours = target
+  // n = (target + 0.015 * hours) * weightG * r / 100 / gramsEach
+  const weightG = weightKg * 1000;
+  const r = R[gender] || 0.73;
+  return (target + 0.015 * hours) * weightG * r / 100 / gramsEach;
+}
+
+function soberIn(bac) {
+  return bac / 0.015; // hours
+}
+
+function statusLabel(bac) {
+  if (bac <= 0)    return { text: 'Sober',         cls: 'status-sober'  };
+  if (bac < 0.04)  return { text: 'Very light',    cls: 'status-sober'  };
+  if (bac < 0.08)  return { text: 'Tipsy 🌀',      cls: 'status-tipsy'  };
+  if (bac < 0.15)  return { text: 'Drunk 🥴',      cls: 'status-drunk'  };
+  return              { text: 'Heavily drunk 🤢',  cls: 'status-heavy'  };
+}
+
+function pegLabel(drinks, ml, type) {
+  if (type === 'Spirits') {
+    const pegs = (drinks * ml / 30);
+    return `≈ ${pegs.toFixed(1)} pegs (30ml each)`;
+  }
+  if (type === 'Beer' || type === 'Cider') {
+    return `≈ ${drinks.toFixed(1)} cans (${ml}ml each)`;
+  }
+  if (type === 'Wine') {
+    return `≈ ${drinks.toFixed(1)} glasses`;
+  }
+  return `≈ ${drinks.toFixed(1)} servings`;
+}
+
+function update() {
+  const gender  = document.getElementById('c-gender').value;
+  const weight  = parseFloat(document.getElementById('c-weight').value) || 70;
+  const hours   = parseFloat(document.getElementById('c-hours').value) || 0;
+  const ml      = parseFloat(document.getElementById('c-ml').value) || 330;
+  const abv     = parseFloat(document.getElementById('c-abv').value) || 5;
+  const count   = parseInt(document.getElementById('c-count').value) || 1;
+  const type    = document.querySelector('input[name="calc-type"]:checked')?.value || 'Beer';
+
+  document.getElementById('r-count').textContent     = count;
+  document.getElementById('r-count-out').textContent = count;
+
+  const gramsEach = grams(ml, abv);
+  const totalG    = gramsEach * count;
+  const bac       = calcBAC(totalG, weight, gender, hours);
+
+  document.getElementById('r-bac').textContent = bac.toFixed(3) + '%';
+  const s = statusLabel(bac);
+  const statusEl = document.getElementById('r-status');
+  statusEl.textContent = s.text;
+  statusEl.className   = 'bac-status ' + s.cls;
+
+  // needle (max at 0.20% → 100%)
+  const needlePct = Math.min(bac / 0.20 * 100, 100);
+  document.getElementById('bac-needle').style.left = needlePct.toFixed(1) + '%';
+
+  const tipsyDrinks = drinksToReach(0.04, gramsEach, weight, gender, hours);
+  const drunkDrinks = drinksToReach(0.08, gramsEach, weight, gender, hours);
+  const heavyDrinks = drinksToReach(0.15, gramsEach, weight, gender, hours);
+
+  document.getElementById('r-tipsy').textContent      = tipsyDrinks > 0 ? tipsyDrinks.toFixed(1) + ' drinks' : 'Already past';
+  document.getElementById('r-drunk').textContent      = drunkDrinks > 0 ? drunkDrinks.toFixed(1) + ' drinks' : 'Already past';
+  document.getElementById('r-heavy').textContent      = heavyDrinks > 0 ? heavyDrinks.toFixed(1) + ' drinks' : 'Already past';
+  document.getElementById('r-tipsy-pegs').textContent = pegLabel(tipsyDrinks, ml, type);
+  document.getElementById('r-drunk-pegs').textContent = pegLabel(drunkDrinks, ml, type);
+  document.getElementById('r-heavy-pegs').textContent = pegLabel(heavyDrinks, ml, type);
+
+  const soberHrs = soberIn(bac);
+  document.getElementById('r-sober-time').textContent = bac <= 0
+    ? 'You are sober now'
+    : `Estimated sober in ${soberHrs.toFixed(1)} hrs`;
+}
+
+// Sync presets when type changes
+document.querySelectorAll('input[name="calc-type"]').forEach(el => {
+  el.addEventListener('change', () => {
+    const p = PRESET[el.value];
+    if (p) {
+      document.getElementById('c-ml').value  = p.ml;
+      document.getElementById('c-abv').value = p.abv;
+    }
+    update();
+  });
+});
+
+document.querySelectorAll('#c-gender,#c-weight,#c-hours,#c-ml,#c-abv,#c-count').forEach(el => {
+  el.addEventListener('input', update);
+});
+
+update();
+</script>
+{% endblock %}

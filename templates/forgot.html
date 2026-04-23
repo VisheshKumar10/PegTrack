@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>PegTrack — Forgot Password</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="auth-body">
+<div class="auth-screen">
+
+  <div class="auth-brand">
+    <div class="auth-logo-mark">◈</div>
+    <h1 class="auth-title">PegTrack</h1>
+    <p class="auth-sub">Recover your account</p>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="flash-group">
+    {% for cat, msg in messages %}
+    <div class="flash flash-{{ cat }}">
+      <span class="flash-icon">{% if cat=='error' %}✕{% elif cat=='success' %}✓{% elif cat=='dev' %}🔑{% else %}ℹ{% endif %}</span>
+      {{ msg }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endwith %}
+
+  <div class="auth-card">
+    <div class="forgot-icon">🔐</div>
+    <h2 class="auth-card-title">Forgot password?</h2>
+    <p class="auth-card-hint">
+      Enter the email address or mobile number linked to your account.
+      We'll send an OTP to verify it's you, then let you set a new password.
+    </p>
+
+    <form method="POST" action="{{ url_for('forgot') }}" novalidate>
+      <div class="field-group">
+        <label class="field-label">Email or mobile number</label>
+        <div class="input-icon-wrap">
+          <span class="input-icon">◎</span>
+          <input class="field-input with-icon" type="text" name="identifier"
+                 placeholder="you@email.com  or  +91 9876543210"
+                 required autofocus>
+        </div>
+      </div>
+      <button type="submit" class="submit-btn">Send recovery OTP →</button>
+    </form>
+
+    <p class="auth-switch" style="margin-top:1.25rem">
+      <a href="{{ url_for('login') }}">← Back to sign in</a>
+    </p>
+  </div>
+</div>
+</body>
+</html>

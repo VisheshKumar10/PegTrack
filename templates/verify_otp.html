@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>PegTrack — Enter OTP</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="auth-body">
+<div class="auth-screen">
+
+  <div class="auth-brand">
+    <div class="auth-logo-mark">◈</div>
+    <h1 class="auth-title">PegTrack</h1>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="flash-group">
+    {% for cat, msg in messages %}
+    <div class="flash flash-{{ cat }}">
+      <span class="flash-icon">{% if cat=='error' %}✕{% elif cat=='success' %}✓{% elif cat=='dev' %}🔑{% else %}ℹ{% endif %}</span>
+      {{ msg }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endwith %}
+
+  <div class="auth-card">
+    <div class="otp-sent-badge">
+      {% if '@' in identifier %}📧{% else %}📱{% endif %}
+      OTP sent
+    </div>
+
+    <h2 class="auth-card-title">Verify your {{ 'email' if '@' in identifier else 'mobile' }}</h2>
+    <p class="auth-card-hint">
+      We sent a 6-digit code to<br>
+      <strong style="color:var(--amber)">{{ identifier }}</strong><br>
+      Valid for <strong style="color:var(--text)">5 minutes</strong>.
+    </p>
+
+    <form method="POST" action="{{ url_for('verify_otp') }}" id="otp-form">
+      <div class="otp-boxes">
+        {% for i in range(6) %}
+        <input class="otp-box" type="text" maxlength="1" inputmode="numeric"
+               pattern="[0-9]" {% if i==0 %}autocomplete="one-time-code"{% endif %}>
+        {% endfor %}
+      </div>
+      <input type="hidden" name="otp" id="otp-hidden">
+
+      <button type="submit" class="submit-btn" id="verify-btn" disabled style="opacity:.5">
+        Verify code ✓
+      </button>
+    </form>
+
+    <div class="otp-meta-row">
+      <div class="otp-countdown">
+        Expires in <span id="countdown" style="font-weight:600;color:var(--amber)">05:00</span>
+      </div>
+      <form method="POST" action="{{ url_for('resend_otp') }}">
+        <button type="submit" class="resend-btn" id="resend-btn" disabled>Resend OTP</button>
+      </form>
+    </div>
+
+    <p class="auth-switch" style="margin-top:1rem">
+      <a href="{{ url_for('login') }}">← Back to sign in</a>
+    </p>
+  </div>
+
+</div>
+<script>
+const boxes  = document.querySelectorAll('.otp-box');
+const hidden = document.getElementById('otp-hidden');
+const btn    = document.getElementById('verify-btn');
+const resend = document.getElementById('resend-btn');
+
+boxes.forEach((box, i) => {
+  box.addEventListener('input', e => {
+    e.target.value = e.target.value.replace(/\D/g,'').slice(-1);
+    if (e.target.value && i < 5) boxes[i+1].focus();
+    sync();
+  });
+  box.addEventListener('keydown', e => {
+    if (e.key === 'Backspace' && !box.value && i > 0) { boxes[i-1].focus(); boxes[i-1].value=''; sync(); }
+    if (e.key === 'ArrowLeft'  && i > 0) boxes[i-1].focus();
+    if (e.key === 'ArrowRight' && i < 5) boxes[i+1].focus();
+  });
+  box.addEventListener('paste', e => {
+    e.preventDefault();
+    const txt = (e.clipboardData||window.clipboardData).getData('text').replace(/\D/g,'');
+    [...txt].slice(0,6).forEach((ch,j) => { if(boxes[j]) boxes[j].value = ch; });
+    boxes[Math.min(txt.length,5)].focus();
+    sync();
+  });
+});
+
+function sync() {
+  const code = [...boxes].map(b => b.value).join('');
+  hidden.value = code;
+  const full = code.length === 6;
+  btn.disabled = !full;
+  btn.style.opacity = full ? '1' : '.5';
+}
+boxes[0].focus();
+
+// Countdown — 5 minutes
+let secs = 300;
+const cdEl = document.getElementById('countdown');
+const timer = setInterval(() => {
+  secs--;
+  if (secs <= 0) {
+    clearInterval(timer);
+    cdEl.textContent = 'Expired';
+    cdEl.style.color = 'var(--coral)';
+    resend.disabled  = false;
+    return;
+  }
+  const m = String(Math.floor(secs/60)).padStart(2,'0');
+  const s = String(secs%60).padStart(2,'0');
+  cdEl.textContent = `${m}:${s}`;
+  if (secs <= 60) cdEl.style.color = 'var(--coral)';
+  if (secs <= 270) resend.disabled = false;   // allow resend after 30s
+}, 1000);
+</script>
+</body>
+</html>

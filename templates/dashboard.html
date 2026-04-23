@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="page-dashboard">
+  <div class="page-header">
+    <p class="page-sub">Overview</p>
+    <h1 class="page-title">{{ period_label }}</h1>
+  </div>
+
+  <div class="period-bar">
+    <div class="period-tabs">
+      <a href="{{ url_for('dashboard', mode='month', month=cur_month) }}"
+         class="period-tab {% if mode=='month' and sel_month==cur_month %}active{% endif %}">This month</a>
+      <a href="{{ url_for('dashboard', mode='year', year=cur_year) }}"
+         class="period-tab {% if mode=='year' and sel_year==cur_year %}active{% endif %}">This year</a>
+    </div>
+    <form method="GET" action="{{ url_for('dashboard') }}" class="period-pick-form">
+      <input type="hidden" name="mode" value="month">
+      <select name="month" class="period-select" onchange="this.form.submit()">
+        {% for m in available_months %}
+        <option value="{{ m }}" {% if mode=='month' and sel_month==m %}selected{% endif %}>{{ m }}</option>
+        {% endfor %}
+      </select>
+    </form>
+    <form method="GET" action="{{ url_for('dashboard') }}" class="period-pick-form">
+      <input type="hidden" name="mode" value="year">
+      <select name="year" class="period-select" onchange="this.form.submit()">
+        {% for y in available_years %}
+        <option value="{{ y }}" {% if mode=='year' and sel_year==y %}selected{% endif %}>{{ y }}</option>
+        {% endfor %}
+      </select>
+    </form>
+  </div>
+
+  <div class="today-pill-row">
+    <div class="today-pill"><span class="pill-label">Today</span><span class="pill-val">{{ today_stats.units }} u</span></div>
+    <div class="today-pill"><span class="pill-label">Today</span><span class="pill-val">{{ today_stats.ml }} ml</span></div>
+    <div class="today-pill"><span class="pill-label">Today</span><span class="pill-val">{{ today_stats.cals }} kcal</span></div>
+  </div>
+
+  <div class="section-label">{{ period_label }}</div>
+  <div class="stat-grid">
+    <div class="stat-card stat-amber"><div class="stat-icon">◎</div><div class="stat-body"><div class="stat-val">{{ stats.units }}</div><div class="stat-label">units</div></div></div>
+    <div class="stat-card stat-blue"><div class="stat-icon">◉</div><div class="stat-body"><div class="stat-val">{{ "{:,}".format(stats.ml) }}</div><div class="stat-label">ml total</div></div></div>
+    <div class="stat-card stat-coral"><div class="stat-icon">◈</div><div class="stat-body"><div class="stat-val">{{ "{:,}".format(stats.cals) }}</div><div class="stat-label">calories</div></div></div>
+    <div class="stat-card stat-teal"><div class="stat-icon">◇</div><div class="stat-body"><div class="stat-val">₹{{ "{:,}".format(stats.cost) }}</div><div class="stat-label">spent</div></div></div>
+    <div class="stat-card stat-purple"><div class="stat-icon">◆</div><div class="stat-body"><div class="stat-val">{{ stats.count }}</div><div class="stat-label">drinks</div></div></div>
+    {% if stats.count > 0 %}
+    <div class="stat-card stat-dim"><div class="stat-icon">÷</div><div class="stat-body"><div class="stat-val">{{ (stats.ml // stats.count) }}</div><div class="stat-label">avg ml/drink</div></div></div>
+    {% endif %}
+  </div>
+
+  <!-- Monthly limit progress -->
+  <div class="section-label">Monthly limit — {{ user.monthly_limit|int }} units</div>
+  {% set month_pct = [(stats.units / user.monthly_limit * 100)|round(1), 100]|min if mode=='month' else 0 %}
+  <div class="card limit-card">
+    <div class="limit-row">
+      <span class="limit-label">{{ stats.units if mode=='month' else '—' }} / {{ user.monthly_limit|int }} units</span>
+      <span class="limit-pct" style="color:{% if month_pct>=100 %}var(--coral){% elif month_pct>=80 %}var(--amber){% else %}var(--teal){% endif %}">
+        {% if mode=='month' %}{{ month_pct }}%{% else %}Switch to month view{% endif %}
+      </span>
+    </div>
+    {% if mode=='month' %}
+    <div class="limit-track">
+      <div class="limit-fill {% if month_pct>=100 %}limit-danger{% elif month_pct>=80 %}limit-warn{% else %}limit-ok{% endif %}"
+           style="width:{{ month_pct }}%"></div>
+    </div>
+    {% endif %}
+  </div>
+
+  {% if by_type %}
+  <div class="section-label">Units by type</div>
+  <div class="card">
+    {% set max_val = namespace(v=0.01) %}
+    {% for t,d in by_type.items() %}{% if d.units > max_val.v %}{% set max_val.v = d.units %}{% endif %}{% endfor %}
+    {% for t,d in by_type.items() %}
+    <div class="type-bar-row">
+      <div class="type-bar-head">
+        <span class="type-dot type-{{ t|lower }}"></span>
+        <span class="type-name">{{ t }}</span>
+        <span class="type-units">{{ "%.1f"|format(d.units) }} u · {{ d.ml|int }} ml</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill bar-{{ t|lower }}" style="width:{{ (d.units/max_val.v*100)|round(1) }}%"></div></div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <a href="{{ url_for('log_drink') }}" class="cta-btn"><span>+ Log a drink</span><span class="cta-arrow">→</span></a>
+  <a href="{{ url_for('calculator') }}" class="cta-btn" style="border-color:var(--purple);color:var(--purple);background:rgba(139,111,240,0.08);margin-top:0.5rem">
+    <span>🧮 Drunk calculator</span><span class="cta-arrow">→</span>
+  </a>
+</div>
+{% endblock %}

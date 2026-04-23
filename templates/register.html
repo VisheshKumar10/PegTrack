@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>PegTrack — Create Account</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="auth-body">
+<div class="auth-screen auth-screen-wide">
+
+  <div class="auth-brand">
+    <div class="auth-logo-mark">◈</div>
+    <h1 class="auth-title">PegTrack</h1>
+    <p class="auth-sub">Create your account</p>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="flash-group">
+    {% for cat, msg in messages %}
+    <div class="flash flash-{{ cat }}">
+      <span class="flash-icon">{% if cat=='error' %}✕{% elif cat=='success' %}✓{% elif cat=='dev' %}🔑{% else %}ℹ{% endif %}</span>
+      {{ msg }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endwith %}
+
+  <div class="auth-card">
+    <h2 class="auth-card-title">Sign up</h2>
+
+    <form method="POST" action="{{ url_for('register') }}" novalidate>
+
+      <div class="form-section-label">Account details</div>
+
+      <div class="field-group">
+        <label class="field-label">Username <span class="req">*</span></label>
+        <div class="input-icon-wrap">
+          <span class="input-icon">@</span>
+          <input class="field-input with-icon" type="text" name="username"
+                 value="{{ username or '' }}" placeholder="your_username (min. 3 chars)"
+                 required minlength="3" autocomplete="username" id="username-input">
+        </div>
+        <span class="field-hint" id="username-hint"></span>
+      </div>
+
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label">Email <span class="req">*</span></label>
+          <input class="field-input" type="email" name="email"
+                 value="{{ email or '' }}" placeholder="you@email.com" required autocomplete="email">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Mobile number <span class="req">*</span></label>
+          <input class="field-input" type="tel" name="phone"
+                 value="{{ phone or '' }}" placeholder="+91 9876543210" required autocomplete="tel">
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label">Password <span class="req">*</span></label>
+          <div class="input-icon-wrap">
+            <input class="field-input" type="password" name="password"
+                   id="pw1" placeholder="Min 8 chars" required autocomplete="new-password">
+            <button type="button" class="pw-toggle" onclick="togglePw('pw1',this)">Show</button>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Confirm password <span class="req">*</span></label>
+          <div class="input-icon-wrap">
+            <input class="field-input" type="password" name="confirm_password"
+                   id="pw2" placeholder="Repeat password" required autocomplete="new-password">
+            <button type="button" class="pw-toggle" onclick="togglePw('pw2',this)">Show</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Password strength meter -->
+      <div class="pw-strength-wrap" id="pw-strength-wrap" style="display:none">
+        <div class="pw-strength-bar">
+          <div class="pw-strength-fill" id="pw-fill"></div>
+        </div>
+        <span class="pw-strength-label" id="pw-label">Weak</span>
+      </div>
+
+      <div class="pw-rules" id="pw-rules">
+        <span class="rule" id="r-len">✗ 8+ characters</span>
+        <span class="rule" id="r-upper">✗ Uppercase letter</span>
+        <span class="rule" id="r-lower">✗ Lowercase letter</span>
+        <span class="rule" id="r-num">✗ Number</span>
+      </div>
+
+      <div class="form-section-label" style="margin-top:1.25rem">Body info (for drunk calculator)</div>
+
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label">Gender</label>
+          <select class="field-input" name="gender">
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Weight (kg)</label>
+          <input class="field-input" type="number" name="weight_kg" value="70" min="30" max="250">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Monthly limit (units)</label>
+          <input class="field-input" type="number" name="monthly_limit" value="56" min="1" max="500">
+        </div>
+      </div>
+
+      <button type="submit" class="submit-btn" id="submit-btn">Create account & get OTP →</button>
+    </form>
+
+    <p class="auth-switch">Already have an account? <a href="{{ url_for('login') }}">Sign in →</a></p>
+  </div>
+</div>
+
+<script>
+function togglePw(id, btn) {
+  const el = document.getElementById(id);
+  if (el.type === 'password') { el.type = 'text'; btn.textContent = 'Hide'; }
+  else { el.type = 'password'; btn.textContent = 'Show'; }
+}
+
+const pw1  = document.getElementById('pw1');
+const wrap = document.getElementById('pw-strength-wrap');
+const fill = document.getElementById('pw-fill');
+const lbl  = document.getElementById('pw-label');
+const rules = { len: /^.{8,}$/, upper: /[A-Z]/, lower: /[a-z]/, num: /\d/ };
+
+pw1.addEventListener('input', () => {
+  const v = pw1.value;
+  wrap.style.display = v ? 'flex' : 'none';
+
+  let score = 0;
+  ['len','upper','lower','num'].forEach(k => {
+    const ok = rules[k].test(v);
+    const el = document.getElementById('r-' + k);
+    el.textContent = (ok ? '✓ ' : '✗ ') + el.textContent.slice(2);
+    el.classList.toggle('rule-ok', ok);
+    if (ok) score++;
+  });
+
+  const colors = ['#e24b4a','#e8a020','#e8a020','#1ebf8a','#1ebf8a'];
+  const labels = ['Very weak','Weak','Fair','Strong','Very strong'];
+  fill.style.width   = (score * 25) + '%';
+  fill.style.background = colors[score];
+  lbl.textContent    = labels[score];
+  lbl.style.color    = colors[score];
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% block title %}Trends{% endblock %}
+
+{% block head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="page-trends">
+
+  <div class="page-header">
+    <p class="page-sub">Analytics</p>
+    <h1 class="page-title">Trends</h1>
+  </div>
+
+  <!-- View switcher: monthly vs yearly -->
+  <div class="period-bar">
+    <div class="period-tabs">
+      <a href="{{ url_for('trends', view='monthly', year=sel_year) }}"
+         class="period-tab {% if view=='monthly' %}active{% endif %}">Monthly</a>
+      <a href="{{ url_for('trends', view='yearly', year=sel_year) }}"
+         class="period-tab {% if view=='yearly' %}active{% endif %}">Yearly</a>
+    </div>
+
+    {% if view == 'monthly' %}
+    <form method="GET" action="{{ url_for('trends') }}" class="period-pick-form">
+      <input type="hidden" name="view" value="monthly">
+      <select name="year" class="period-select" onchange="this.form.submit()">
+        {% for y in available_years %}
+        <option value="{{ y }}" {% if sel_year==y %}selected{% endif %}>{{ y }}</option>
+        {% endfor %}
+      </select>
+    </form>
+    {% endif %}
+  </div>
+
+  <!-- Year summary cards -->
+  {% if view == 'monthly' %}
+  <div class="section-label">{{ sel_year }} summary</div>
+  {% else %}
+  <div class="section-label">All-time summary</div>
+  {% endif %}
+
+  <div class="stat-grid">
+    <div class="stat-card stat-amber">
+      <div class="stat-icon">◎</div>
+      <div class="stat-body">
+        <div class="stat-val">{{ year_stats.units if view=='monthly' else all_stats.units }}</div>
+        <div class="stat-label">units</div>
+      </div>
+    </div>
+    <div class="stat-card stat-blue">
+      <div class="stat-icon">◉</div>
+      <div class="stat-body">
+        <div class="stat-val">{{ "{:,}".format(year_stats.ml if view=='monthly' else all_stats.ml) }}</div>
+        <div class="stat-label">ml</div>
+      </div>
+    </div>
+    <div class="stat-card stat-coral">
+      <div class="stat-icon">◈</div>
+      <div class="stat-body">
+        <div class="stat-val">{{ "{:,}".format(year_stats.cals if view=='monthly' else all_stats.cals) }}</div>
+        <div class="stat-label">calories</div>
+      </div>
+    </div>
+    <div class="stat-card stat-teal">
+      <div class="stat-icon">◇</div>
+      <div class="stat-body">
+        <div class="stat-val">₹{{ "{:,}".format(year_stats.cost if view=='monthly' else all_stats.cost) }}</div>
+        <div class="stat-label">spent</div>
+      </div>
+    </div>
+  </div>
+
+  {% if labels %}
+
+  <div class="section-label">Total ml consumed</div>
+  <div class="card chart-card">
+    <div class="chart-wrap">
+      <canvas id="ml-chart" role="img" aria-label="Total ml consumed chart"></canvas>
+    </div>
+  </div>
+
+  <div class="section-label">Alcohol units</div>
+  <div class="card chart-card">
+    <div class="chart-wrap">
+      <canvas id="units-chart" role="img" aria-label="Alcohol units chart"></canvas>
+    </div>
+  </div>
+
+  <div class="section-label">Calories</div>
+  <div class="card chart-card">
+    <div class="chart-wrap">
+      <canvas id="cal-chart" role="img" aria-label="Calories chart"></canvas>
+    </div>
+  </div>
+
+  <div class="section-label">Spending (₹)</div>
+  <div class="card chart-card">
+    <div class="chart-wrap">
+      <canvas id="spend-chart" role="img" aria-label="Spending chart"></canvas>
+    </div>
+  </div>
+
+  {% if type_breakdown %}
+  <div class="section-label">By drink type — {{ sel_year }}</div>
+  <div class="card">
+    {% set max_tb = namespace(v=0.01) %}
+    {% for t,d in type_breakdown.items() %}{% if d.units > max_tb.v %}{% set max_tb.v = d.units %}{% endif %}{% endfor %}
+    {% for t, d in type_breakdown.items()|sort(attribute='1.units', reverse=True) %}
+    <div class="type-bar-row">
+      <div class="type-bar-head">
+        <span class="type-dot type-{{ t|lower }}"></span>
+        <span class="type-name">{{ t }}</span>
+        <span class="type-units">{{ "%.1f"|format(d.units) }} u &nbsp;·&nbsp; {{ d.ml|int }} ml</span>
+      </div>
+      <div class="bar-track">
+        <div class="bar-fill bar-{{ t|lower }}" style="width:{{ (d.units/max_tb.v*100)|round(1) }}%"></div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">📊</div>
+    <p>No data for {{ sel_year }}. Log some drinks first.</p>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const labels    = {{ labels|tojson }};
+const mlData    = {{ ml_data|tojson }};
+const unitsData = {{ units_data|tojson }};
+const costData  = {{ cost_data|tojson }};
+const calData   = {{ cal_data|tojson }};
+
+const gridColor = 'rgba(255,255,255,0.06)';
+const tickStyle = { color:'#8a8a9a', font:{ size:11, family:'DM Sans' } };
+const base = {
+  responsive:true, maintainAspectRatio:false,
+  plugins:{ legend:{ display:false } },
+  scales:{
+    y:{ beginAtZero:true, grid:{ color:gridColor }, ticks:tickStyle },
+    x:{ grid:{ display:false }, ticks:{ ...tickStyle, autoSkip:false, maxRotation:45 } }
+  }
+};
+
+function bar(id, data, fill, border) {
+  const el = document.getElementById(id);
+  if(!el) return;
+  new Chart(el, {
+    type:'bar',
+    data:{ labels, datasets:[{ data, backgroundColor:fill, borderColor:border, borderWidth:1.5, borderRadius:6 }] },
+    options: base
+  });
+}
+
+if(labels.length){
+  bar('ml-chart',    mlData,    'rgba(99,153,221,0.45)', '#6399DD');
+  bar('units-chart', unitsData, 'rgba(186,117,23,0.45)', '#BA7517');
+  bar('cal-chart',   calData,   'rgba(212,83,126,0.45)', '#D4537E');
+  bar('spend-chart', costData,  'rgba(29,158,117,0.45)', '#1D9E75');
+}
+</script>
+{% endblock %}

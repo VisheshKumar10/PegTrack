@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: pourlog
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    disk:
+      name: pourlog-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: MAIL_SERVER
+        value: smtp.gmail.com
+      - key: MAIL_PORT
+        value: 587
+      - key: MAIL_USERNAME
+        sync: false        # fill in on Render dashboard
+      - key: MAIL_PASSWORD
+        sync: false        # Gmail App Password
+      # Optional SMS via Twilio:
+      # - key: TWILIO_SID
+      #   sync: false
+      # - key: TWILIO_TOKEN
+      #   sync: false
+      # - key: TWILIO_FROM
+      #   sync: false

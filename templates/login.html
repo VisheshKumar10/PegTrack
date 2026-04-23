@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>PegTrack — Sign In</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="auth-body">
+<div class="auth-screen">
+
+  <div class="auth-brand">
+    <div class="auth-logo-mark">◈</div>
+    <h1 class="auth-title">PegTrack</h1>
+    <p class="auth-sub">Track smarter. Drink wiser.</p>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="flash-group">
+    {% for cat, msg in messages %}
+    <div class="flash flash-{{ cat }}">
+      <span class="flash-icon">{% if cat=='error' %}✕{% elif cat=='success' %}✓{% elif cat=='dev' %}🔑{% else %}ℹ{% endif %}</span>
+      {{ msg }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endwith %}
+
+  <div class="auth-card">
+    <h2 class="auth-card-title">Sign in</h2>
+
+    <form method="POST" action="{{ url_for('login') }}" novalidate>
+      <div class="field-group">
+        <label class="field-label">Username or email</label>
+        <div class="input-icon-wrap">
+          <span class="input-icon">◎</span>
+          <input class="field-input with-icon" type="text" name="username"
+                 placeholder="your_username or email@example.com"
+                 required autofocus autocomplete="username">
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">
+          Password
+          <a href="{{ url_for('forgot') }}" class="label-link">Forgot password?</a>
+        </label>
+        <div class="input-icon-wrap">
+          <span class="input-icon">🔒</span>
+          <input class="field-input with-icon" type="password" name="password"
+                 id="pw-input" placeholder="Enter your password"
+                 required autocomplete="current-password">
+          <button type="button" class="pw-toggle" onclick="togglePw('pw-input',this)">Show</button>
+        </div>
+      </div>
+
+      <button type="submit" class="submit-btn">Sign in →</button>
+    </form>
+
+    <div class="auth-divider"><span>New to PegTrack?</span></div>
+    <a href="{{ url_for('register') }}" class="outline-btn">Create account</a>
+  </div>
+
+  <p class="auth-footer">Secured with bcrypt · Rate-limited · HTTPS ready</p>
+</div>
+<script>
+function togglePw(id, btn) {
+  const el = document.getElementById(id);
+  if (el.type === 'password') { el.type = 'text'; btn.textContent = 'Hide'; }
+  else { el.type = 'password'; btn.textContent = 'Show'; }
+}
+</script>
+</body>
+</html>

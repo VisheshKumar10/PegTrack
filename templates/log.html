@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}Log Drink{% endblock %}
+
+{% block content %}
+<div class="page-log">
+
+  <div class="page-header">
+    <p class="page-sub">Track it</p>
+    <h1 class="page-title">Add a drink</h1>
+  </div>
+
+  <div class="card form-card">
+    <form method="POST" action="{{ url_for('log_drink') }}" id="drink-form">
+
+      <div class="type-picker">
+        {% for t, icon in [('Beer','🍺'),('Wine','🍷'),('Spirits','🥃'),('Cocktail','🍸'),('Cider','🍎'),('Other','🥤')] %}
+        <label class="type-chip">
+          <input type="radio" name="type" value="{{ t }}" {% if t=='Beer' %}checked{% endif %}>
+          <span class="chip-inner">
+            <span class="chip-icon">{{ icon }}</span>
+            <span class="chip-label">{{ t }}</span>
+          </span>
+        </label>
+        {% endfor %}
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Drink name</label>
+        <input class="field-input" type="text" name="name" placeholder="e.g. Kingfisher, Shiraz, Mojito">
+      </div>
+
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label">Amount (ml)</label>
+          <input class="field-input" type="number" name="ml" id="ml-input" value="330" min="1" max="2000" required>
+        </div>
+        <div class="field-group">
+          <label class="field-label">ABV (%)</label>
+          <input class="field-input" type="number" name="abv" id="abv-input" value="5" step="0.1" min="0.1" max="100" required>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label">Cost (₹)</label>
+          <input class="field-input" type="number" name="cost" value="0" min="0" step="1">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Date</label>
+          <input class="field-input" type="date" name="date" value="{{ today }}">
+        </div>
+      </div>
+
+      <!-- Live preview -->
+      <div class="preview-box">
+        <div class="preview-row">
+          <span class="preview-label">Units</span>
+          <span class="preview-val" id="preview-units">1.65</span>
+        </div>
+        <div class="preview-sep"></div>
+        <div class="preview-row">
+          <span class="preview-label">Calories (est.)</span>
+          <span class="preview-val" id="preview-cals">142</span>
+        </div>
+      </div>
+
+      <button type="submit" class="submit-btn">Add drink</button>
+    </form>
+  </div>
+
+  <!-- Today's drinks -->
+  <div class="section-label">Today's log</div>
+  {% if today_rows %}
+  <div class="card">
+    {% for r in today_rows %}
+    <div class="log-row">
+      <div class="log-left">
+        <div class="log-avatar type-bg-{{ r.type|lower }}">
+          {{ {'Beer':'🍺','Wine':'🍷','Spirits':'🥃','Cocktail':'🍸','Cider':'🍎'}.get(r.type,'🥤') }}
+        </div>
+        <div class="log-info">
+          <div class="log-name">{{ r.name }}</div>
+          <div class="log-meta">{{ r.ml|int }}ml · {{ r.abv }}% · {{ r.calories }} kcal</div>
+        </div>
+      </div>
+      <div class="log-right">
+        <div class="log-units">{{ "%.2f"|format(r.units) }} u</div>
+        <div class="log-cost">₹{{ r.cost|int }}</div>
+      </div>
+      <form method="POST" action="{{ url_for('delete_drink', drink_id=r.id) }}" style="margin:0">
+        <input type="hidden" name="next" value="log_drink">
+        <button type="submit" class="del-btn" title="Delete">✕</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">🫗</div>
+    <p>Nothing logged yet today</p>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const CAL_MAP = {Beer:43,Wine:83,Spirits:220,Cocktail:170,Cider:44,Other:60};
+function updatePreview(){
+  const ml  = parseFloat(document.getElementById('ml-input').value)||0;
+  const abv = parseFloat(document.getElementById('abv-input').value)||0;
+  const type = document.querySelector('input[name="type"]:checked')?.value||'Beer';
+  const units = (ml*abv/1000).toFixed(2);
+  const cals  = Math.round(ml*(CAL_MAP[type]||60)/100);
+  document.getElementById('preview-units').textContent = units;
+  document.getElementById('preview-cals').textContent = cals;
+}
+document.querySelectorAll('#ml-input,#abv-input').forEach(el=>el.addEventListener('input',updatePreview));
+document.querySelectorAll('input[name="type"]').forEach(el=>el.addEventListener('change',updatePreview));
+updatePreview();
+</script>
+{% endblock %}
